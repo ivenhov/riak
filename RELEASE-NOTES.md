@@ -1,13 +1,72 @@
-#Riak KV 2.2.3 Release Notes
+# Riak KV 2.2.3-ivenhov1 Release Notes
+This uses dependencies from ivenhov forks of versions used in official 2.2.3.
+
+Dependencies have some improvements in recovery from corrupt files, specifically
+- ring file
+- AAE tree
+- levelDB data backend
+
+**Introduced behaviour may not be appropriate for all situations and deployments.  
+Please use carefully.**
+
+Changes in dependencies and behaviour are as follows:
+
+- riak_core 2.1.9-ivenhov1
+
+  Attempts to start Riak even in the presence of a corrupt ring file.
+  
+  Ring snapshot is usually located in /var/lib/riak/ring/. Example filename may look like this
+  riak_core_ring.default.20121114094641.  
+  If the latest ring file was corrupt (as a result of a powercut etc.) Riak would not start.  
+
+  This build attempts to ignore corrupt file and tries to use one of the previous versions.  
+  If the version can be successfully loaded, Riak should start as normal.  
+  As part of a normal operation, at some point Riak will take a new snaphot of the ring and also prune old ones (including corrupt).  
+  **This is a default behaviour. Currently there is no option to turn it off.**
+
+- riak_kv	2.1.7-ivenhov1
+
+  Includes improvements to allow recovery from corrupt AAE (anti-entropy) tree and leveldb backend.  
+  
+  Corrupt AAE tree may be a result of a powercut. In that situation Riak can start, but it often causes high CPU load and/or repeated log messages similar to:  
+  ```db_open,"Corruption: truncated record at end of file"```  
+
+  This version will automatically delete corrupt AAE db of an affected vnode.  
+  Subsequent open operation (which is automatic) should be successful at this stage.  
+  Essentially, this mimics the manual intervention and deletion of an affected AAE tree, by doing it at runtime.  
+  **This is a default behaviour. Currently there is no option to turn it off.**
+
+  Another improvement is in handling corrupt leveldb data backend (also possible during powercut, shutdown etc).  
+  If a vnode could not open its corresponding leveldb upon start, Riak service would stop immediately.  
+  Log messages were showing error similar to:  
+  ```db_open,"Corruption: truncated record at end of file"```
+
+  This version upon detection of a db_open error, will attempt to repair leveldb in the foreground.  
+  If that operation is successful, it will try to open db again and complete vnode start up.  
+  **This is a default behaviour. Currently there is no option to turn it off.**
+
+  Repair operation may take significant amount of time, possibly minutes/hours depending on data set.  
+  During a repair, a vnode responsible for that partition is not running.  
+  Depending on the configuration, this may result in errors due to not satisfying quorum etc.
+  
+- Other dependencies have been updated as a result of the changes in riak_core, riak_kv:  
+  - riak_pipe		  2.1.5-ivenhov1
+  - riak_api		  2.1.6-ivenhov1
+  - riak_control	2.1.6-ivenhov1
+  - riak_search		2.1.6-ivenhov1
+  - yokozuna		  2.1.10-ivenhov1
+
+
+# Riak KV 2.2.3 Release Notes
 http://docs.basho.com/riak/kv/2.2.3/release-notes/
 
-#Riak KV 2.2.2 Release Notes
+# Riak KV 2.2.2 Release Notes
 http://docs.basho.com/riak/kv/2.2.2/release-notes/
 
-#Riak KV 2.2.1 Release Notes
+# Riak KV 2.2.1 Release Notes
 http://docs.basho.com/riak/kv/2.2.1/release-notes/
 
-#Riak KV 2.1.2 Release Notes
+# Riak KV 2.1.2 Release Notes
 
 Released December 1, 2015.
 
